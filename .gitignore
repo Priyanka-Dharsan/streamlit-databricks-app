@@ -1,4 +1,6 @@
 .venv/
-.databrickscfg
+streamlit-app/
 __pycache__/
-.databricks/
+*.pyc
+.env
+.databrickscfg
