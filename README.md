@@ -46,27 +46,17 @@ databricks apps logs my-streamlit-app
 
 ## Environment map
 
-
-
-| Item | Value |
-
-|---|---|
-
-| Platform | Databricks Free Edition |
-
-| Catalog | `workspace` |
-
-| Schema | `workspace.it\_capstone` |
-
-| SQL warehouse | Serverless Starter Warehouse |
-
-| Volume | `workspace.it\_capstone.raw\_files` (optional CSV uploads) |
-
-| App framework | Streamlit |
+Item - Value
+Platform -	Databricks Free Edition
+Catalog -	workspace
+Schema -	workspace.it_capstone
+SQL Warehouse -	Serverless Starter Warehouse
+Volume -	workspace.it_capstone.raw_files
+App Framework -	Streamlit
 
 
 
-\### Tables and views
+### Tables and views
 
 | Object | Type | Read / Write | Purpose |
 
@@ -84,7 +74,7 @@ databricks apps logs my-streamlit-app
 
 
 
-\### Queries (`sql/queries.sql`)
+### Queries (`sql/queries.sql`)
 
 1\. Available laptops
 
