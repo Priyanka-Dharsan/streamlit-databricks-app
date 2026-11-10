@@ -46,31 +46,25 @@ databricks apps logs my-streamlit-app
 
 ## Environment map
 
-Item - Value
-Platform -	Databricks Free Edition
-Catalog -	workspace
-Schema -	workspace.it_capstone
-SQL Warehouse -	Serverless Starter Warehouse
-Volume -	workspace.it_capstone.raw_files
-App Framework -	Streamlit
-
+| Item          | Value                           | 
+|---------------|---------------------------------|
+| Platform      | Databricks Free Edition         | 
+| Catalog       | workspace                       | 
+| Schema        | workspace.it_capstone           |  
+| SQL Warehouse | Serverless Starter Warehouse    |  
+| Volume        | workspace.it_capstone.raw_files |  
+| App Framework | Streamlit                       |  
 
 
 ### Tables and views
 
 | Object | Type | Read / Write | Purpose |
-
 |---|---|---|---|
-
 | `employees` | Table | Read | Employee list (sample data) |
-
 | `assets` | Table | Read | Asset inventory |
-
-| `asset\_assignments` | Table | Write | Log of assign and return events |
-
-| `v\_current\_holdings` | View | Read | Latest assignment per asset |
-
-| `v\_available\_laptops` | View | Read | Laptops with status Available |
+| `asset_assignments` | Table | Write | Log of assign and return events |
+| `v_current_holdings` | View | Read | Latest assignment per asset |
+| `v_available_laptops` | View | Read | Laptops with status Available |
 
 
 
