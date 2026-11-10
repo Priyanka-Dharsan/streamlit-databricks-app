@@ -44,7 +44,7 @@ databricks apps logs my-streamlit-app
 
 
 
-\## Environment map
+## Environment map
 
 
 
