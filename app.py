@@ -1,112 +1,109 @@
-import time
-import numpy as np
+import os
+
 import pandas as pd
 import streamlit as st
+from databricks import sql
+from databricks.sdk.core import Config
 
-st.set_page_config(page_title="Sales Explorer", page_icon="📊", layout="wide")
+st.set_page_config(page_title="IT Asset Tracker", page_icon="💻", layout="wide")
 
+# ---------- 1. Warehouse ID comes from app.yaml (valueFrom) or your local `set` command ----------
+WAREHOUSE_ID = os.getenv("DATABRICKS_WAREHOUSE_ID")
+if not WAREHOUSE_ID:
+    st.error("DATABRICKS_WAREHOUSE_ID is not set. Check the app resource and app.yaml.")
+    st.stop()
 
-# ---------- 1. CACHE: slow data load runs only once ----------
-@st.cache_data
-def load_data() -> pd.DataFrame:
-    time.sleep(2)  # fake slow query
-    rng = np.random.default_rng(42)
-    dates = pd.date_range("2026-01-01", "2026-10-31", freq="D")
-    rows = []
-    for d in dates:
-        for region in ["North", "South", "East", "West"]:
-            for product in ["Laptop", "Phone", "Tablet"]:
-                rows.append({
-                    "date": d,
-                    "region": region,
-                    "product": product,
-                    "units": int(rng.integers(1, 50)),
-                    "price": float(rng.integers(200, 1200)),
-                })
-    df = pd.DataFrame(rows)
-    df["revenue"] = df["units"] * df["price"]
-    return df
+cfg = Config()  # app identity when deployed, your CLI profile locally
 
 
-with st.spinner("Loading data (only slow the first time)..."):
-    df = load_data()
+# ---------- 2. One helper that runs a parameterized query ----------
+@st.cache_data(ttl=60, show_spinner="Querying the warehouse...")
+def run_query(query: str, params: dict | None = None) -> pd.DataFrame:
+    with sql.connect(
+        server_hostname=cfg.host,
+        http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
+        credentials_provider=lambda: cfg.authenticate,
+    ) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall_arrow().to_pandas()
 
-# ---------- 2. SESSION STATE ----------
-if "favorites" not in st.session_state:
-    st.session_state.favorites = []
-if "run_count" not in st.session_state:
-    st.session_state.run_count = 0
-st.session_state.run_count += 1
 
-st.title("📊 Sales Explorer (mock data)")
+# ---------- 3. Sidebar widgets (these become query parameters) ----------
+st.title("💻 IT Asset Tracker (live Unity Catalog data)")
 
-# ---------- 3. SIDEBAR (widgets) ----------
 st.sidebar.header("Filters")
-regions = st.sidebar.multiselect(
-    "Region",
-    ["North", "South", "East", "West"],
-    default=["North", "South", "East", "West"],
-)
-product = st.sidebar.selectbox("Product", ["All", "Laptop", "Phone", "Tablet"])
-min_units = st.sidebar.slider("Minimum units sold", 0, 50, 10)
-show_details = st.sidebar.checkbox("Show details box", value=True)
-st.sidebar.caption(f"Script has rerun {st.session_state.run_count} times")
+asset_type = st.sidebar.selectbox("Asset type", ["All", "Laptop", "Monitor", "Phone"])
+status = st.sidebar.selectbox("Status", ["All", "Available", "Assigned", "Repair", "Retired"])
+row_limit = st.sidebar.slider("Max rows", min_value=10, max_value=500, value=100, step=10)
+if st.sidebar.button("Refresh data"):
+    st.cache_data.clear()
+    st.rerun()
 
-# ---------- 4. FILTER THE DATA ----------
-filtered = df[df["region"].isin(regions)]
-if product != "All":
-    filtered = filtered[filtered["product"] == product]
-filtered = filtered[filtered["units"] >= min_units]
+# ---------- 4. Queries (no SELECT *, with parameters and LIMIT) ----------
+ASSETS_SQL = """
+SELECT asset_id, asset_type, model, status, purchase_date, warranty_end
+FROM workspace.it_capstone.assets
+WHERE (:asset_type = 'All' OR asset_type = :asset_type)
+  AND (:status = 'All' OR status = :status)
+ORDER BY asset_id
+LIMIT :row_limit
+"""
 
-# ---------- 5. COLUMNS: KPI cards ----------
-c1, c2, c3 = st.columns(3)
-c1.metric("Total revenue", f"${filtered['revenue'].sum():,.0f}")
-c2.metric("Units sold", f"{filtered['units'].sum():,}")
-c3.metric("Rows", f"{len(filtered):,}")
+HOLDERS_SQL = """
+SELECT
+  a.asset_id,
+  a.asset_type,
+  a.model,
+  e.full_name,
+  e.department,
+  h.action_date AS assigned_on
+FROM workspace.it_capstone.v_current_holdings h
+JOIN workspace.it_capstone.assets a ON a.asset_id = h.asset_id
+JOIN workspace.it_capstone.employees e ON e.employee_id = h.employee_id
+WHERE (:asset_type = 'All' OR a.asset_type = :asset_type)
+ORDER BY e.full_name
+LIMIT :row_limit
+"""
 
-st.divider()
+DEPT_SQL = """
+SELECT
+  e.department,
+  COUNT(h.asset_id) AS assets_held
+FROM workspace.it_capstone.employees e
+LEFT JOIN workspace.it_capstone.v_current_holdings h
+  ON h.employee_id = e.employee_id
+GROUP BY e.department
+ORDER BY assets_held DESC
+LIMIT :row_limit
+"""
 
-# ---------- 6. COLUMNS with different widths ----------
-left, right = st.columns([4, 1])
-
-with left:
-    st.subheader("Left side (wide)")
-    st.write("Selected regions:", regions)
-
-with right:
-    st.subheader("Right side (narrow)")
-    st.write("Product:", product)
-
-# ---------- 7. TABS ----------
-tab_chart, tab_table, tab_fav = st.tabs(["Chart", "Table", "Favorites"])
-
-with tab_chart:
-    monthly = (
-        filtered.set_index("date")
-        .groupby([pd.Grouper(freq="MS"), "region"])["revenue"]
-        .sum()
-        .unstack(fill_value=0)
+# ---------- 5. Run the queries ----------
+try:
+    assets_df = run_query(
+        ASSETS_SQL,
+        {"asset_type": asset_type, "status": status, "row_limit": row_limit},
     )
-    st.line_chart(monthly)
+    holders_df = run_query(HOLDERS_SQL, {"asset_type": asset_type, "row_limit": row_limit})
+    dept_df = run_query(DEPT_SQL, {"row_limit": row_limit})
+except Exception as e:
+    st.error(f"Query failed: {e}")
+    st.stop()
 
-with tab_table:
-    st.dataframe(filtered.head(200), width="stretch")
+# ---------- 6. Show the results ----------
+c1, c2, c3 = st.columns(3)
+c1.metric("Assets shown", len(assets_df))
+c2.metric("Currently held", len(holders_df))
+c3.metric("Departments", len(dept_df))
 
-with tab_fav:
-    choice = st.selectbox("Pick a region to favorite", ["North", "South", "East", "West"])
+tab_assets, tab_holders, tab_dept = st.tabs(["Assets", "Who holds what", "By department"])
 
-    if st.button("⭐ Add to favorites"):
-        if choice not in st.session_state.favorites:
-            st.session_state.favorites.append(choice)
+with tab_assets:
+    st.dataframe(assets_df, use_container_width=True)
 
-    st.write("Your favorites:", st.session_state.favorites or "none yet")
+with tab_holders:
+    st.dataframe(holders_df, use_container_width=True)
 
-    if st.button("Clear favorites"):
-        st.session_state.favorites = []
-        st.rerun()
-
-# ---------- 8. EXPANDER ----------
-if show_details:
-    with st.expander("Click to see details"):
-        st.write("An expander hides extra information until the user opens it.")
-        st.write("It keeps the page clean.")
+with tab_dept:
+    st.bar_chart(dept_df.set_index("department"))
+    st.dataframe(dept_df, use_container_width=True)

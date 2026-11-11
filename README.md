@@ -44,7 +44,7 @@ databricks apps logs my-streamlit-app
 
 
 
-## Environment map
+## Session 6 - Environment map
 
 | Item          | Value                           | 
 |---------------|---------------------------------|
@@ -62,10 +62,13 @@ databricks apps logs my-streamlit-app
 |---|---|---|---|
 | `employees` | Table | Read | Employee list (sample data) |
 | `assets` | Table | Read | Asset inventory |
+
 | `asset_assignments` | Table | Write | Log of assign and return events |
 | `v_current_holdings` | View | Read | Latest assignment per asset |
 | `v_available_laptops` | View | Read | Laptops with status Available |
-
+| `asset\\\_assignments` | Table | Write | Log of assign and return events |
+| `v\\\_current\\\_holdings` | View | Read | Latest assignment per asset |
+| `v\\\_available\\\_laptops` | View | Read | Laptops with status Available |
 
 
 ### Queries (`sql/queries.sql`)
@@ -79,4 +82,18 @@ databricks apps logs my-streamlit-app
 4\. Assets held per department
 
 5\. Assets still held by inactive employees
+
+
+
+\## Session 7: Live data from Unity Catalog
+
+\- SQL warehouse attached as an app resource (key: `sql-warehouse`)
+
+\- `app.yaml` reads it with `valueFrom` into `DATABRICKS\_WAREHOUSE\_ID`
+
+\- `app.py` uses databricks-sql-connector with parameterized queries (`:name`) and a `LIMIT` on every query
+
+\- App service principal has USE CATALOG, USE SCHEMA and SELECT on `workspace.it\_capstone`
+
+\- Deployed Streamlit is older than my local one, so I use `use\_container\_width=True`, which works on both
 
