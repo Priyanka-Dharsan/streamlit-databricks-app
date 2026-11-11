@@ -62,7 +62,6 @@ databricks apps logs my-streamlit-app
 |---|---|---|---|
 | `employees` | Table | Read | Employee list (sample data) |
 | `assets` | Table | Read | Asset inventory |
-
 | `asset_assignments` | Table | Write | Log of assign and return events |
 | `v_current_holdings` | View | Read | Latest assignment per asset |
 | `v_available_laptops` | View | Read | Laptops with status Available |
@@ -85,7 +84,7 @@ databricks apps logs my-streamlit-app
 
 
 
-\## Session 7: Live data from Unity Catalog
+## Session 7: Live data from Unity Catalog
 
 \- SQL warehouse attached as an app resource (key: `sql-warehouse`)
 
