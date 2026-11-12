@@ -155,3 +155,10 @@ JOIN workspace.it_capstone.assets a ON a.asset_id = h.asset_id
 JOIN workspace.it_capstone.employees e ON e.employee_id = h.employee_id
 WHERE e.is_active = false
 ORDER BY h.action_date;
+
+
+--- ROW FILTER SQL - Session 8 ----------
+SELECT employee_id, full_name, department, location, current_user() AS running_as
+FROM workspace.it_capstone.employees
+ORDER BY employee_id
+LIMIT :row_limit

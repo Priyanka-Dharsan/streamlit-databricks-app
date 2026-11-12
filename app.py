@@ -107,3 +107,53 @@ with tab_holders:
 with tab_dept:
     st.bar_chart(dept_df.set_index("department"))
     st.dataframe(dept_df, use_container_width=True)
+
+
+# ===================== SESSION 8: App auth vs user auth =====================
+st.divider()
+st.header("🔐 App auth vs user auth")
+
+mode = st.radio(
+    "Run the query as:",
+    ["App (service principal)", "User (forwarded token)"],
+    horizontal=True,
+)
+
+AUTH_SQL = """
+SELECT employee_id, full_name, department, location, current_user() AS running_as
+FROM workspace.it_capstone.employees
+ORDER BY employee_id
+LIMIT :row_limit
+"""
+
+def run_query_as_user(query: str, params: dict, token: str) -> pd.DataFrame:
+    # No st.cache_data here: a shared cache would show one user's rows to another user.
+    with sql.connect(
+        server_hostname=cfg.host,
+        http_path=f"/sql/1.0/warehouses/{WAREHOUSE_ID}",
+        access_token=token,
+    ) as conn:
+        with conn.cursor() as cursor:
+            cursor.execute(query, params)
+            return cursor.fetchall_arrow().to_pandas()
+
+
+try:
+    if mode.startswith("App"):
+        auth_df = run_query(AUTH_SQL, {"row_limit": 100})
+    else:
+        user_token = st.context.headers.get("x-forwarded-access-token")
+        if not user_token:
+            st.warning(
+                "No user token found. This works only in the deployed app, "
+                "with the 'sql' scope added in Settings > User authorization."
+            )
+            st.stop()
+        auth_df = run_query_as_user(AUTH_SQL, {"row_limit": 100}, user_token)
+
+    st.metric("Rows returned", len(auth_df))
+    if not auth_df.empty:
+        st.caption(f"Query ran as: {auth_df['running_as'].iloc[0]}")
+    st.dataframe(auth_df, use_container_width=True)
+except Exception as e:
+    st.error(f"Query failed: {e}")
