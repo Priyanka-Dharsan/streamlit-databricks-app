@@ -162,3 +162,40 @@ SELECT employee_id, full_name, department, location, current_user() AS running_a
 FROM workspace.it_capstone.employees
 ORDER BY employee_id
 LIMIT :row_limit
+
+----Session 9: GRANTS & AUDITS------
+GRANT SELECT ON TABLE workspace.it_capstone.assets TO `<SERVICE_PRINCIPAL>`;
+GRANT SELECT ON TABLE workspace.it_capstone.employees TO `<SERVICE_PRINCIPAL>`;
+GRANT SELECT ON TABLE workspace.it_capstone.asset_assignments TO `<SERVICE_PRINCIPAL>`;
+
+GRANT USE CATALOG ON CATALOG workspace TO `<SERVICE_PRINCIPAL>`;
+
+GRANT USE SCHEMA ON SCHEMA workspace.it_capstone TO `<SERVICE_PRINCIPAL>`;
+
+show grants on catalog workspace;
+
+show grants on schema workspace.it_capstone;
+
+SHOW GRANTS ON TABLE workspace.it_capstone.assets;
+
+SHOW GRANTS ON TABLE workspace.it_capstone.employees;
+
+SHOW GRANTS ON TABLE workspace.it_capstone.asset_assignments;
+
+show schemas in system;
+
+SELECT event_time, service_name, action_name, user_identity.email AS actor
+FROM system.access.audit
+WHERE event_date >= current_date() - 7
+  AND user_identity.email = '<SERVICE_PRINCIPAL>'
+  AND service_name = 'workspace'
+ORDER BY event_time DESC
+LIMIT 100;
+
+SELECT service_name, action_name, COUNT(*) AS event_count
+FROM system.access.audit
+WHERE event_date >= current_date() - 7
+  AND user_identity.email = '<SERVICE_PRINCIPAL>'
+GROUP BY service_name, action_name
+ORDER BY event_count DESC
+LIMIT 20;

@@ -101,3 +101,24 @@ databricks apps logs my-streamlit-app
 
 In App Authorization, the application logs in using its own identity (service principal), so all users see the same data based on the permissions given to the app. It is useful for shared data, dashboards, reference lists, background jobs and logging events. In User Authorization, the application accesses data using the logged-in user's identity, so each user can see only the data they have permission to access. When I ran a query on the employees table using App Authorization, it returned 5 records, but using User Authorization, it returned only 3 records because I had access to Bengaluru employees only. User Authorization is useful when data is sensitive or different for each user. We should always request only the permissions we need and never store user-specific results in a shared cache like st.cache_data, because one user might accidentally see another user's data.
 
+
+## Session 9: Grants, secrets and audit
+
+### Permissions checklist (app service principal)
+| Object | Privilege | Reason |
+|---|---|---|
+| SQL warehouse | Can use | Run queries |
+| Catalog `workspace` | USE CATALOG | Resolve names |
+| Schema `workspace.it_capstone` | USE SCHEMA | Resolve names |
+| `assets`, `employees`, `asset_assignments`, `v_current_holdings` | SELECT | Read only |
+| `asset_assignments` | MODIFY (later) | Write-back only |
+| Everything else | None | Least privilege |
+
+User authorization scope: `sql` only.
+
+### Secrets
+- Zero secrets in the repo: `git grep` and a history search found nothing. `.env` and `.databrickscfg` are in `.gitignore`.
+- The app authenticates as its service principal, so it has no password. The secret pattern (scope, secret resource, `valueFrom`) is documented/demonstrated with a demo value.
+
+### Audit
+- Queried `system.access.audit` for the app's service principal over 7 days. Found `commandSubmit` query events, all reads, matching the read-only grants.

@@ -157,3 +157,8 @@ try:
     st.dataframe(auth_df, use_container_width=True)
 except Exception as e:
     st.error(f"Query failed: {e}")
+
+
+#-------------Session 9 : Secrets--------------
+for name in ["DEMO_API_KEY", "DEMO_DB_PASSWORD", "DEMO_WEBHOOK_URL"]:
+    st.caption(f"🔑 {name}: {'loaded' if os.getenv(name) else 'missing'}")
