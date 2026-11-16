@@ -122,3 +122,18 @@ User authorization scope: `sql` only.
 
 ### Audit
 - Queried `system.access.audit` for the app's service principal over 7 days. Found `commandSubmit` query events, all reads, matching the read-only grants.
+
+
+# Capstone v0.1: identity decision
+
+**Mode chosen:** app authorization (service principal), read-only.
+
+**Why:**
+- All asset managers need the same inventory, so per-user filtering adds nothing today.
+- Least shared permissions is simple: USE CATALOG, USE SCHEMA, SELECT on 4 objects, no MODIFY.
+- Shared 60-second caching keeps warehouse load low.
+- No user tokens to handle, so a smaller attack surface.
+
+**Trade-off:** the audit log shows the service principal, not the person viewing.
+
+**Revisit when:** Assign/Return write-back is added (switch to user authorization so audit shows who changed what), or data becomes per-region sensitive.
