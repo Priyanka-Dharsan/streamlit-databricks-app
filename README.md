@@ -65,9 +65,6 @@ databricks apps logs my-streamlit-app
 | `asset_assignments` | Table | Write | Log of assign and return events |
 | `v_current_holdings` | View | Read | Latest assignment per asset |
 | `v_available_laptops` | View | Read | Laptops with status Available |
-| `asset\\\_assignments` | Table | Write | Log of assign and return events |
-| `v\\\_current\\\_holdings` | View | Read | Latest assignment per asset |
-| `v\\\_available\\\_laptops` | View | Read | Laptops with status Available |
 
 
 ### Queries (`sql/queries.sql`)
